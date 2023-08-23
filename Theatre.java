@@ -1,6 +1,9 @@
 package challenge_theatre;
 
+import java.util.Collection;
+import java.util.Collections;
 import java.util.NavigableSet;
+import java.util.Objects;
 import java.util.TreeSet;
 
 public class Theatre {
@@ -22,27 +25,43 @@ public class Theatre {
 			char rowAlpha = (char)(65+i);
 			for(int j =0 ; j<this.noOfSeatsInRow; j++) {
 				int seatInteger = j+1;
-				seats.add(new Seat(rowAlpha, seatInteger));
+				String seatNumber = seatInteger < 10 ? rowAlpha+"00"+seatInteger :
+					seatInteger >99 ? rowAlpha+""+seatInteger : rowAlpha+"0"+seatInteger; 
+				seats.add(new Seat(seatNumber));
 			}
 		}
 	}
 	
-	private void reserveSeats(String seatNumber) {
-		this.seats.contains()
+	public void reserveSeats(String seatNumber) {
+		Seat reservingSeat = new Seat(seatNumber);
+		if(seats.contains(reservingSeat) && !reservingSeat.getReservationStatus()) {
+			reservingSeat.reserveSeat();
+			seats.remove(reservingSeat);
+			seats.add(reservingSeat);
+		}
+	} 
+	
+	public void printSeats() {
+		String lineSeperator = "-".repeat(90);
+		System.out.println(lineSeperator);
+		int count=0;
+		for(Seat s: seats) {
+			System.out.print(s);
+			if(++count%noOfSeatsInRow ==0) {
+				System.out.println();
+			}
+			
+		}
 	}
 	
 	private class Seat implements Comparable<Seat>{
-		private char rowCharacter;
-		private int seatInteger;
+
 		private boolean reserved;
 		private String seatNumber;
 		
-		private Seat(char rowCharacter, int seatInteger){
-			this.rowCharacter = rowCharacter;
-			this.seatInteger = seatInteger;
+		private Seat(String seatNumber){
 			reserved = false;
-			this.seatNumber = seatInteger < 10 ? rowCharacter+"00"+seatInteger :
-				seatInteger >99 ? rowCharacter+""+seatInteger : rowCharacter+"0"+seatInteger;
+			this.seatNumber = seatNumber;
 		}
 		
 		private String getSeatNumber() {
@@ -57,11 +76,13 @@ public class Theatre {
 			this.reserved = false;
 		}
 		
-		
+		private boolean getReservationStatus() {
+			return this.reserved; 
+		}
 		
 		@Override
 		public String toString() {
-			return this.getSeatNumber();
+			return "%s(%s)".formatted(seatNumber, reserved ? "R":"U");
 		}
 
 		@Override
@@ -69,5 +90,33 @@ public class Theatre {
 			
 			return this.getSeatNumber().compareTo(o.getSeatNumber());
 		}
+
+		@Override
+		public int hashCode() {
+			final int prime = 31;
+			int result = 1;
+			result = prime * result + getEnclosingInstance().hashCode();
+			result = prime * result + Objects.hash(seatNumber);
+			return result;
+		}
+
+		@Override
+		public boolean equals(Object obj) {
+			if (this == obj)
+				return true;
+			if (obj == null)
+				return false;
+			if (getClass() != obj.getClass())
+				return false;
+			Seat other = (Seat) obj;
+			if (!getEnclosingInstance().equals(other.getEnclosingInstance()))
+				return false;
+			return Objects.equals(seatNumber, other.seatNumber);
+		}
+
+		private Theatre getEnclosingInstance() {
+			return Theatre.this;
+		}
+		
 	}
 }
