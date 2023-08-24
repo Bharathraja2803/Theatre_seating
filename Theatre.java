@@ -36,14 +36,18 @@ public class Theatre {
 	
 	public void reserveSeats(String seatNumber) {
 		Seat reservingSeat = new Seat(seatNumber);
-		if(seats.contains(reservingSeat) && !reservingSeat.getReservationStatus()) {
-			reservingSeat.reserveSeat();
-			seats.remove(reservingSeat);
-			seats.add(reservingSeat);
-			System.out.println(reservingSeat+" reserved successfully");
+		Seat reserved = seats.floor(reservingSeat);
+		if(reserved!=null && reserved.equals(reservingSeat)) {
+			if(!reserved.getReservationStatus()) {
+				reserved.reserveSeat();
+				System.out.println("%s is reserved successfully!".formatted(reserved));
+			}else {
+				System.out.println("%s is already reserved".formatted(reservingSeat));
+			}
 		}else {
-			System.out.println("Reservation failed!");
+			System.out.println("The seat %s is invalid \nSeats ranges between %s - %s".formatted(reservingSeat, seats.first(), seats.last()));
 		}
+		
 	} 
 	
 	public void reserveSeat(List<String> multiSeatNumbers) {
@@ -53,9 +57,10 @@ public class Theatre {
 		}
 		
 		if(seats.containsAll(multiReservingSeats)) {
-			boolean isAllUnReserved = true;  
-			for (Seat reservingSeat : seats) {
-				if(multiReservingSeats.contains(reservingSeat) && reservingSeat.getReservationStatus()) {
+			boolean isAllUnReserved = true;
+			for (Seat reservingSeat : multiReservingSeats) {
+				Seat reserved = seats.floor(reservingSeat);
+				if(reserved.getReservationStatus()) {
 					isAllUnReserved = false;
 					break;
 				}
@@ -78,7 +83,7 @@ public class Theatre {
 		System.out.println("%s%n%s%n%s%n%s".formatted(lineSeperator,this.theatreName,lineSeperator,"Seat map"));
 		int count=0;
 		for(Seat s: seats) {
-			System.out.print(s);
+			System.out.print("%8s(%s)".formatted(s,s.getReservationStatus()? "R":"U"));
 			if(++count%noOfSeatsInRow ==0) {
 				System.out.println();
 			}
@@ -116,7 +121,7 @@ public class Theatre {
 		
 		@Override
 		public String toString() {
-			return "%s(%s)".formatted(seatNumber, reserved ? "R":"U");
+			return getSeatNumber();
 		}
 
 		@Override
