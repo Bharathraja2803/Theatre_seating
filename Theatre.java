@@ -1,7 +1,9 @@
 package challenge_theatre;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.NavigableSet;
 import java.util.Objects;
 import java.util.TreeSet;
@@ -38,12 +40,42 @@ public class Theatre {
 			reservingSeat.reserveSeat();
 			seats.remove(reservingSeat);
 			seats.add(reservingSeat);
+			System.out.println(reservingSeat+" reserved successfully");
+		}else {
+			System.out.println("Reservation failed!");
 		}
 	} 
 	
+	public void reserveSeat(List<String> multiSeatNumbers) {
+		NavigableSet<Seat> multiReservingSeats = new TreeSet<>();
+		for(String seatNumber: multiSeatNumbers) {
+			multiReservingSeats.add(new Seat(seatNumber));
+		}
+		
+		if(seats.containsAll(multiReservingSeats)) {
+			boolean isAllUnReserved = true;  
+			for (Seat reservingSeat : seats) {
+				if(multiReservingSeats.contains(reservingSeat) && reservingSeat.getReservationStatus()) {
+					isAllUnReserved = false;
+					break;
+				}
+			}
+			if(isAllUnReserved) {
+				multiReservingSeats.forEach(Seat::reserveSeat);
+				seats.removeAll(multiReservingSeats);
+				seats.addAll(multiReservingSeats);
+				System.out.println(multiReservingSeats+" seats were reserved successfully!");
+			}else {
+				System.out.println("Try with another List of seats \nbecause some of the seats mentioned is already booked!");
+			}
+		}else {
+			System.out.println("Entered seat numbers invalid");
+		}
+	}
+	
 	public void printSeats() {
 		String lineSeperator = "-".repeat(90);
-		System.out.println(lineSeperator);
+		System.out.println("%s%n%s%n%s%n%s".formatted(lineSeperator,this.theatreName,lineSeperator,"Seat map"));
 		int count=0;
 		for(Seat s: seats) {
 			System.out.print(s);
@@ -52,6 +84,8 @@ public class Theatre {
 			}
 			
 		}
+		
+		System.out.println(lineSeperator);
 	}
 	
 	private class Seat implements Comparable<Seat>{
