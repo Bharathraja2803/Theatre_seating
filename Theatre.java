@@ -6,6 +6,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.NavigableSet;
 import java.util.Objects;
+import java.util.Set;
 import java.util.TreeSet;
 
 public class Theatre {
@@ -27,30 +28,32 @@ public class Theatre {
 			char rowAlpha = (char)(65+i);
 			for(int j =0 ; j<this.noOfSeatsInRow; j++) {
 				int seatInteger = j+1;
-				String seatNumber = seatInteger < 10 ? rowAlpha+"00"+seatInteger :
-					seatInteger >99 ? rowAlpha+""+seatInteger : rowAlpha+"0"+seatInteger; 
-				seats.add(new Seat(seatNumber));
+//				String seatNumber = seatInteger < 10 ? rowAlpha+"00"+seatInteger :
+//					seatInteger >99 ? rowAlpha+""+seatInteger : rowAlpha+"0"+seatInteger; 
+				seats.add(new Seat("%c%03d".formatted(rowAlpha,seatInteger)));
 			}
 		}
 	}
 	
-	public void reserveSeats(String seatNumber) {
+	public boolean reserveSeats(String seatNumber) {
+		boolean isReserved = false;
 		Seat reservingSeat = new Seat(seatNumber);
 		Seat reserved = seats.floor(reservingSeat);
 		if(reserved!=null && reserved.equals(reservingSeat)) {
-			if(!reserved.getReservationStatus()) {
-				reserved.reserveSeat();
-				System.out.println("%s is reserved successfully!".formatted(reserved));
+			if(!reserved.reserved) {
+				reserved.reserved = true;
+				isReserved = true;
 			}else {
 				System.out.println("%s is already reserved".formatted(reservingSeat));
 			}
 		}else {
 			System.out.println("The seat %s is invalid \nSeats ranges between %s - %s".formatted(reservingSeat, seats.first(), seats.last()));
 		}
-		
+		return isReserved;
 	} 
 	
-	public void reserveSeat(List<String> multiSeatNumbers) {
+	public boolean reserveSeats(List<String> multiSeatNumbers) {
+		boolean isReserved = false;
 		NavigableSet<Seat> multiReservingSeats = new TreeSet<>();
 		for(String seatNumber: multiSeatNumbers) {
 			multiReservingSeats.add(new Seat(seatNumber));
@@ -60,22 +63,23 @@ public class Theatre {
 			boolean isAllUnReserved = true;
 			for (Seat reservingSeat : multiReservingSeats) {
 				Seat reserved = seats.floor(reservingSeat);
-				if(reserved.getReservationStatus()) {
+				if(reserved.reserved) {
 					isAllUnReserved = false;
 					break;
 				}
 			}
 			if(isAllUnReserved) {
-				multiReservingSeats.forEach(Seat::reserveSeat);
+				multiReservingSeats.forEach(s -> s.reserved = true);
 				seats.removeAll(multiReservingSeats);
 				seats.addAll(multiReservingSeats);
-				System.out.println(multiReservingSeats+" seats were reserved successfully!");
+				isReserved = true;
 			}else {
-				System.out.println("Try with another List of seats \nbecause some of the seats mentioned is already booked!");
+				System.out.println("Some of the seats were already books!");
 			}
 		}else {
 			System.out.println("Entered seat numbers invalid");
 		}
+		return isReserved;
 	}
 	
 	public void printSeats() {
@@ -83,7 +87,7 @@ public class Theatre {
 		System.out.println("%s%n%s%n%s%n%s".formatted(lineSeperator,this.theatreName,lineSeperator,"Seat map"));
 		int count=0;
 		for(Seat s: seats) {
-			System.out.print("%8s(%s)".formatted(s,s.getReservationStatus()? "R":"U"));
+			System.out.print("%8s%s".formatted(s,s.reserved? "(R)":"   "));
 			if(++count%noOfSeatsInRow ==0) {
 				System.out.println();
 			}
@@ -93,41 +97,89 @@ public class Theatre {
 		System.out.println(lineSeperator);
 	}
 	
-	private class Seat implements Comparable<Seat>{
+	private boolean validate(int count, char first, char last, int min, int max) {
+
+        boolean result = (min > 0 || noOfSeatsInRow >= count || (max - min + 1) >= count);
+        result = result && seats.contains(new Seat("%c%03d".formatted(first, min)));
+        if (!result) {
+            System.out.printf("Invalid! %1$d seats between " +
+                            "%2$c[%3$d-%4$d]-%5$c[%3$d-%4$d] Try again",
+                    count, first, min, max, last);
+            System.out.printf(": Seat must be between %s and %s%n",
+                    seats.first().seatNumber, seats.last().seatNumber);
+        }
+
+        return result;
+    }
+
+    public Set<Seat> reserveSeats(int count,  char minRow, char maxRow,
+                                  int minSeat, int maxSeat) {
+
+    	
+        char lastValid = seats.last().seatNumber.charAt(0);
+        maxRow = (maxRow < lastValid) ? maxRow : lastValid;
+
+        if (!validate(count, minRow, maxRow, minSeat, maxSeat)) {
+            return  null;
+        }
+
+        NavigableSet<Seat> selected = null;
+
+        for (char letter = minRow; letter <= maxRow; letter++) {
+
+            NavigableSet<Seat> contiguous = seats.subSet(
+                    new Seat("%c%03d".formatted(letter, minSeat)), true,
+                    new Seat("%c%03d".formatted(letter, maxSeat)), true);
+
+            int index = 0;
+            Seat first = null;
+            for (Seat current : contiguous) {
+                if (current.reserved) {
+                    index = 0;
+                    continue;
+                }
+                first = (index == 0) ? current : first;
+                if (++index == count) {
+                    selected = contiguous.subSet(first, true,
+                            current, true);
+                    break;
+                }
+            }
+            if (selected != null) {
+                break;
+            }
+        }
+
+        Set<Seat> reservedSeat = null;
+        if (selected != null) {
+            selected.forEach(s -> s.reserved = true);
+            reservedSeat = new TreeSet<>(selected);
+        }
+        return reservedSeat;
+    }
+	
+	 class Seat implements Comparable<Seat>{
 
 		private boolean reserved;
 		private String seatNumber;
 		
-		private Seat(String seatNumber){
+		Seat(String seatNumber){
 			reserved = false;
 			this.seatNumber = seatNumber;
 		}
 		
-		private String getSeatNumber() {
-			return this.seatNumber;
-		}
 		
-		private void reserveSeat() {
-			this.reserved = true;
-		}
 		
-		private void unReserved() {
-			this.reserved = false;
-		}
-		
-		private boolean getReservationStatus() {
-			return this.reserved; 
-		}
 		
 		@Override
 		public String toString() {
-			return getSeatNumber();
+			return seatNumber;
 		}
 
 		@Override
 		public int compareTo(Seat o) {
 			
-			return this.getSeatNumber().compareTo(o.getSeatNumber());
+			return this.seatNumber.compareTo(o.seatNumber);
 		}
 
 		@Override
